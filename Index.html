@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QrBarZone - QR & Barcode Generator</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="apple-touch-icon" href="logo.png">
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bwip-js@4.3.2/dist/bwip-js.min.js"></script>
+  <style>
+    :root {
+      --primary-blue: #3498db;
+      --bg-primary: #f8f9fa;
+      --bg-secondary: #ffffff;
+      --text-primary: #2c3e50;
+      --heading-color: #2c3e50;
+      --border-color: #e0e0e0;
+      --input-focus: #3498db;
+      --shadow-light: rgba(0, 0, 0, 0.08);
+    }
+
+    [data-theme="dark"] {
+      --primary-blue: #5dade2;
+      --bg-primary: #1a1a1a;
+      --bg-secondary: #2d2d2d;
+      --text-primary: #ecf0f1;
+      --heading-color: #ecf0f1;
+      --border-color: #444;
+      --input-focus: #5dade2;
+      --shadow-light: rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="colorize"] {
+      --primary-blue: #3498db;
+      --bg-primary: #2d1b4d;
+      --bg-secondary: #3f2a63;
+      --text-primary: #e0d9ff;
+      --heading-color: #e0d9ff;
+      --border-color: #6b4b9e;
+      --input-focus: #3498db;
+      --shadow-light: rgba(0, 0, 0, 0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 20px;
+      transition: all 0.3s ease;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Particle canvas sits behind content */
+    #particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0; /* behind the content */
+      pointer-events: none; /* allow clicks through */
+      display: block;
+    }
+
+    /* Ensure main content sits above the particle canvas */
+    .main-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    header { 
+      text-align: center; 
+      margin-bottom: 5px; 
+      padding: 10px 0; 
+      position: relative;
+    }
+    
+    .header-logo {
+      width: 120px;
+      height: auto;
+      display: block;
+      margin: 0 auto -10px auto;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    header h1 {
+      font-size: 56px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      margin: 0;
+      background: linear-gradient(90deg, #ff006e, #8338ec, #3a86ff, #06ffa2, #ffbe0b, #fb5607, #ff006e);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientFlow 8s ease infinite;
+      display: inline-block;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    @keyframes gradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    #datetime-display {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 600;
+      margin: 10px 0 20px 0;
+      color: var(--text-primary);
+      opacity: 0.9;
+      letter-spacing: 1px;
+    }
+
+    .container { 
+      max-width: 1000px; 
+      margin: 0 auto; 
+      display: flex; 
+      gap: 20px; 
+      flex-wrap: wrap; 
+    }
+    .container { 
+      align-items: stretch;
+    }
+    .left-panel, .right-panel { 
+      display: flex;
+      flex-direction: column;
+    }
+    .left-panel .panel, .right-panel .panel {
+      flex: 1;
+      min-height: 0;
+    }
+    .left-panel, .right-panel { flex: 1; min-width: 300px; }
+
+    .panel {
+      background: var(--bg-secondary); 
+      padding: 20px; 
+      border-radius: 15px;
+      box-shadow: 0 4px 12px var(--shadow-light); 
+      border: 1px solid var(--border-color);
+    }
+    h2 { text-align: center; margin-bottom: 20px; color: var(--heading-color); font-size: 20px; }
+    .tabs { 
+      display: flex; 
+      margin-bottom: 20px; 
+      border-bottom: 1px solid var(--border-color); 
+      flex-wrap: wrap; 
+      gap: 4px;
+    }
+    .tab {
+      flex: 1; 
+      padding: 12px 8px; 
+      text-align: center; 
+      cursor: pointer; 
+      font-weight: 600;
+      transition: all 0.3s; 
+      border-radius: 8px 8px 0 0;
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white !important;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 14px; }
+    input[type="text"], input[type="url"], input[type="email"], textarea, select {
+      width: 100%; 
+      padding: 10px 12px; 
+      border: 1.5px solid var(--border-color);
+      border-radius: 10px; 
+      background: var(--bg-secondary); 
+      color: var(--text-primary);
+      font-size: 14px; 
+      transition: all 0.2s;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none; 
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.2);
+    }
+    textarea { min-height: 80px; resize: vertical; }
+
+    .logo-upload {
+      text-align: center; 
+      padding: 20px; 
+      border: 2px dashed var(--border-color);
+      border-radius: 12px; 
+      cursor: pointer; 
+      transition: all 0.2s; 
+      margin: 16px 0;
+      background: white; 
+      color: #000000; 
+      font-weight: 600;
+    }
+    .logo-upload:hover { border-color: var(--input-focus); background: #f0f0f0; transform: translateY(-1px); }
+    .logo-preview { 
+      width: 80px; 
+      height: 80px; 
+      margin: 10px auto; 
+      border-radius: 12px;
+      object-fit: contain; 
+      border: 2px solid var(--border-color); 
+      display: none; 
+    }
+
+    .color-control, .style-control {
+      background: var(--bg-secondary); 
+      padding: 20px; 
+      border-radius: 15px;
+      box-shadow: 0 4px 12px var(--shadow-light); 
+      border: 1px solid var(--border-color);
+      margin-top: 20px;
+    }
+    .color-control h3, .style-control h3 {
+      margin: 0 0 15px 0; 
+      font-size: 16px; 
+      color: var(--heading-color);
+      text-align: center; 
+      font-weight: 600;
+    }
+    .color-row { display: flex; gap: 12px; }
+    .color-group { flex: 1; text-align: center; }
+    .color-group input[type="color"] {
+      width: 100%; 
+      height: 44px; 
+      padding: 4px; 
+      border: 1.5px solid var(--border-color);
+      border-radius: 10px; 
+      cursor: pointer;
+    }
+    .color-value { margin-top: 6px; font-family: monospace; font-size: 13px; color: var(--text-primary); }
+
+    .style-row { display: flex; gap: 10px; justify-content: center; }
+    .style-btn {
+      flex: 1; 
+      padding: 10px 8px; 
+      font-size: 14px; 
+      font-weight: 600;
+      border: 1.5px solid var(--border-color); 
+      border-radius: 10px;
+      background: var(--bg-secondary); 
+      color: var(--text-primary); 
+      cursor: pointer;
+      transition: all 0.2s ease; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 4px;
+    }
+    .style-btn .icon { width: 24px; height: 24px; background: var(--text-primary); border-radius: 4px; transition: all 0.2s; }
+    .style-btn.rounded .icon { border-radius: 8px; }
+    .style-btn.dot .icon { border-radius: 50%; width: 12px; height: 12px; margin-top: 6px; }
+    .style-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; 
+      border-color: transparent;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    .style-btn.active .icon { background: white; }
+    .style-btn:hover:not(.active) { border-color: var(--input-focus); transform: translateY(-1px); }
+
+    .qr-container { text-align: center; padding: 20px; }
+    #qrcode { 
+      display: inline-block; 
+      margin: 20px 0; 
+      padding: 20px; 
+      background: white; 
+      border-radius: 15px; 
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+    }
+    #qrcode canvas, #qrcode svg { image-rendering: pixelated; max-width: 100%; height: auto; }
+
+    .download-buttons {
+      display: flex; 
+      gap: 8px; 
+      justify-content: center; 
+      flex-wrap: wrap; 
+      margin-top: 15px;
+    }
+    .download-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; 
+      border: none;
+      padding: 10px 18px; 
+      font-size: 13px; 
+      font-weight: 600;
+      border-radius: 8px; 
+      cursor: pointer; 
+      transition: all 0.3s; 
+      min-width: 70px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    .download-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .theme-toggle { 
+      position: fixed; 
+      top: 20px; 
+      right: 20px; 
+      z-index: 10000; 
+    }
+    .switch { position: relative; display: inline-block; width: 56px; height: 30px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc; transition: .4s; border-radius: 34px;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 24px; width: 24px; left: 4px; bottom: 3px;
+      background-color: white; transition: .4s; border-radius: 50%;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    input:checked + .slider { background: linear-gradient(135deg, #667eea, #764ba2); }
+    input:checked + .slider:before { transform: translateX(24px); }
+
+    /* ==================== FOOTER ANIMATIONS ==================== */
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      padding: 30px 20px 20px;
+      font-size: 14px;
+      color: var(--text-primary);
+      opacity: 0;
+      transform: translateY(40px);
+      transition: all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+      animation: float 6s ease-in-out infinite;
+      position: relative; /* for absolute-positioned social row */
+    }
+
+    footer.visible {
+      opacity: 0.9;
+      transform: translateY(0);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    footer a {
+      color: var(--text-primary);
+      text-decoration: none;
+      position: relative;
+      transition: color 0.3s ease;
+    }
+    footer a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 1px;
+      bottom: -2px;
+      left: 50%;
+      background-color: var(--text-primary);
+      transition: all 0.4s ease;
+    }
+    footer a:hover {
+      color: #a29bfe;
+    }
+    footer a:hover::after {
+      width: 100%;
+      left: 0;
+    }
+    /* ========================================================= */
+
+    /* ============== Footer social round icons ============== */
+    .footer-social {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 18px;
+      /* keep in footer flow; on small screens it will stack nicely */
+      flex-wrap: wrap;
+    }
+
+    .footer-social a {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+      transition: transform .16s ease, box-shadow .16s ease;
+      border: 2px solid rgba(255,255,255,0.06);
+    }
+
+    .footer-social a:active { transform: scale(0.98); }
+
+    /* Brand colors */
+    .footer-social .fb { background: #1877F2; color: #fff; }
+    .footer-social .ig {
+      background: radial-gradient(circle at 30% 30%, #ffd3a5 0%, #ff7a62 20%, #e6499b 50%, #833ab4 80%);
+      color: #fff;
+    }
+    .footer-social .x { background: #000; color: #fff; }
+    .footer-social .wa { background: linear-gradient(180deg,#25D366,#1DA851); color: #fff; }
+
+    /* icon sizing */
+    .footer-social svg { width: 20px; height: 20px; display: block; }
+
+    .footer-social a:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.28);
+    }
+
+    @media (max-width: 480px) {
+      .footer-social a { width: 40px; height: 40px; }
+      .footer-social svg { width: 18px; height: 18px; }
+      footer { padding-bottom: 22px; }
+    }
+    /* ============== End footer social ============== */
+
+    @media (max-width: 780px) {
+      body { padding: 12px; overflow-x: hidden; }
+      header h1 { font-size: 40px; }
+      .header-logo { width: 100px; margin-bottom: -8px; }
+      #datetime-display { font-size: 18px; }
+      .container { gap: 16px; padding: 0; }
+      .left-panel, .right-panel { min-width: 100%; padding: 0; }
+      .panel { padding: 16px; border-radius: 12px; }
+      .tab { padding: 10px 4px; font-size: 12.5px; }
+      .form-group { margin-bottom: 14px; }
+      input, textarea, select { font-size: 15px; padding: 10px 11px; }
+      .color-row, .style-row, .download-buttons { gap: 10px; }
+      .download-btn { width: 100%; padding: 12px; font-size: 14px; }
+      .theme-toggle { top: 10px; right: 10px; }
+      #qrcode { padding: 14px; }
+      footer { margin-top: 40px; padding: 20px 10px; font-size: 13px; }
+    }
+
+    @media (max-width: 480px) {
+      header h1 { font-size: 34px; }
+      .header-logo { width: 85px; margin-bottom: -6px; }
+      #datetime-display { font-size: 16px; }
+      body { padding: 8px; }
+      .panel { padding: 14px; }
+      h2 { font-size: 18px; }
+      .tab { font-size: 11.5px; padding: 8px 3px; }
+      .logo-upload { padding: 14px; font-size: 14px; }
+      #qrcode { padding: 12px; }
+      .download-btn { font-size: 14.5px; padding: 12px; }
+      footer { font-size: 12.5px; }
+    }
+  </style>
+</head>
+<body data-theme="colorize">
+
+  <!-- Particle canvas (behind everything) -->
+  <canvas id="particles" aria-hidden="true"></canvas>
+
+  <!-- All original content kept inside main-content to preserve layout and stacking -->
+  <div class="main-content">
+    <div class="theme-toggle">
+      <label class="switch">
+        <input type="checkbox" id="themeCheckbox" onclick="toggleTheme()">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <header>
+      <img src="logo.png" alt="QBZ Logo" class="header-logo" onclick="location.reload();">
+      <h1 onclick="location.reload();">QrBarZone</h1>
+    </header>
+
+    <div id="datetime-display"></div>
+
+    <div class="container">
+      <div class="left-panel">
+        <div class="panel">
+          <h2>QR & Barcode Generator</h2>
+
+          <div class="tabs">
+            <div class="tab active" onclick="openTab('website')">Website</div>
+            <div class="tab" onclick="openTab('text')">Text</div>
+            <div class="tab" onclick="openTab('wifi')">WiFi</div>
+            <div class="tab" onclick="openTab('whatsapp')">Whatsapp</div>
+            <div class="tab" onclick="openTab('vcard')">vCard</div>
+            <div class="tab" onclick="openTab('barcode')">Barcode</div>
+          </div>
+
+          <!-- All form tabs remain exactly the same -->
+          <div id="website" class="tab-content" style="display: block;">
+            <div class="form-group">
+              <label>Website URL</label>
+              <input type="url" id="website-url" placeholder="https://example.com" oninput="debouncedUpdate()">
+            </div>
+          </div>
+          <div id="text" class="tab-content" style="display: none;">
+            <div class="form-group">
+              <label>Enter Text</label>
+              <textarea id="plain-text" placeholder="Your message here..." oninput="debouncedUpdate()"></textarea>
+            </div>
+          </div>
+          <div id="wifi" class="tab-content" style="display: none;">
+            <div class="form-group">
+              <label>Network Name (SSID)</label>
+              <input type="text" id="wifi-ssid" placeholder="MyWiFi" oninput="debouncedUpdate()">
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="text" id="wifi-password" placeholder="Leave empty if open" oninput="debouncedUpdate()">
+            </div>
+            <div class="form-group">
+              <label>Encryption</label>
+              <select id="wifi-encryption" onchange="updateQRNow()">
+                <option value="WEP">WEP</option>
+                <option value="WPA">WPA/WPA2</option>
+                <option value="WPA3">WPA3</option>
+                <option value="">None</option>
+              </select>
+            </div>
+          </div>
+          <div id="whatsapp" class="tab-content" style="display: none;">
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input type="text" id="whatsapp-phone" placeholder="+880XXXXXXXXXX" oninput="debouncedUpdate()">
+            </div>
+            <div class="form-group">
+              <label>Pre-filled Message (optional)</label>
+              <textarea id="whatsapp-message" placeholder="Hello!" oninput="debouncedUpdate()"></textarea>
+            </div>
+          </div>
+          <div id="vcard" class="tab-content" style="display: none;">
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" id="vcard-name" placeholder="John Doe" oninput="debouncedUpdate()">
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="text" id="vcard-phone" placeholder="+880XXXXXXXXXX" oninput="debouncedUpdate()">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="text" id="vcard-email" placeholder="john@example.com" oninput="debouncedUpdate()">
+            </div>
+            <div class="form-group">
+              <label>Company</label>
+              <input type="text" id="vcard-company" placeholder="ABC Corp" oninput="debouncedUpdate()">
+            </div>
+          </div>
+
+          <div id="barcode" class="tab-content" style="display: none;">
+            <div class="form-group">
+              <label>Barcode Text</label>
+              <input type="text" id="barcode-text" placeholder="1234567890" oninput="debouncedUpdate()">
+            </div>
+            <div class="form-group">
+              <label>Barcode Type</label>
+              <select id="barcode-type" onchange="updateQRNow()">
+                <option value="code128">CODE128 (Recommended)</option>
+                <option value="code39">CODE39</option>
+                <option value="ean13">EAN-13</option>
+                <option value="ean8">EAN-8</option>
+                <option value="upca">UPC-A</option>
+                <option value="itf14">ITF-14</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Show Text Below Barcode</label>
+              <select id="barcode-includetext" onchange="updateQRNow()">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="logo-upload" id="logoSection" onclick="document.getElementById('logo-input').click()">
+            <p>Click to upload logo</p>
+            <img id="logo-preview" class="logo-preview" alt="Logo Preview">
+            <input type="file" id="logo-input" accept="image/*" style="display: none;" onchange="loadLogo(this)">
+          </div>
+
+          <div class="form-group" id="sizeSection">
+            <label>Size: <span id="size-value">256</span>px</label>
+            <input type="range" id="qr-size" min="128" max="1024" value="256" step="32" oninput="updateSizeValue(); updateQRNow()">
+          </div>
+
+          <div class="color-control" id="colorSection">
+            <h3>Color</h3>
+            <div class="color-row">
+              <div class="color-group">
+                <label>Dark (Bars/Dots)</label>
+                <input type="color" id="color-dark" value="#000000" oninput="updateColorValues(); updateQRNow()">
+                <div class="color-value" id="dark-value">#000000</div>
+              </div>
+              <div class="color-group">
+                <label>Light (Background)</label>
+                <input type="color" id="color-light" value="#ffffff" oninput="updateColorValues(); updateQRNow()">
+                <div class="color-value" id="light-value">#FFFFFF</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="style-control" id="styleSection">
+            <h3>QR Style</h3>
+            <div class="style-row">
+              <button class="style-btn active" data-style="square" onclick="setStyle(this)">Square</button>
+              <button class="style-btn rounded" data-style="rounded" onclick="setStyle(this)">Rounded</button>
+              <button class="style-btn dot" data-style="dot" onclick="setStyle(this)">Dot</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="panel qr-container">
+          <h2>Preview</h2>
+          <div id="qrcode">
+            <canvas id="qr-canvas"></canvas>
+          </div>
+          <div class="download-buttons" style="display:none;" id="downloadButtons">
+            <button class="download-btn" onclick="downloadQR('png')">PNG</button>
+            <button class="download-btn" onclick="downloadQR('bmp')">BMP</button>
+            <button class="download-btn" onclick="downloadQR('pdf')">PDF</button>
+          </div>
+
+          <div style="margin-top: 40px; text-align: center;">
+            <div id="ww_49a22cdbb707f" v='1.3' loc='auto' a='{"t":"horizontal","lang":"en","sl_lpl":1,"ids":[],"font":"Arial","sl_ics":"one_a","sl_sot":"celsius","cl_bkg":"image","cl_font":"#FFFFFF","cl_cloud":"#FFFFFF","cl_persp":"#81D4FA","cl_sun":"#FFC107","cl_moon":"#FFC107","cl_thund":"#FF5722"}'>Weather Data Source: <a href="https://wetterlang.de" id="ww_49a22cdbb707f_u" target="_blank">Wetter vorhersage 30 tage</a></div>
+            <script async src="https://app3.weatherwidget.org/js/?id=ww_49a22cdbb707f"></script>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animated Footer -->
+    <footer id="animatedFooter">
+      <div>© QrBarZone, All rights reserved. 2025</div>
+      <div>Developed by: Raisul Abedin</div>
+      <div>Phone: <a href="tel:+8801911060686">+8801911-060686</a> Email: <a href="mailto:mirobside@gmail.com">mirobside@gmail.com</a></div>
+      <div style="margin-top: 12px; font-weight: 600;">Powered by Rams Inc.</div>
+
+      <!-- Added round social/profile icons -->
+      <div class="footer-social" aria-label="Social profiles">
+        <!-- Replace hrefs below with your actual profile URLs -->
+       <a title="Facebook, Inc., Public domain, via Wikimedia Commons" 
+		href="https://www.facebook.com/raisul.abedin.1">
+		<img width="45" alt="Facebook f logo" 
+		src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Facebook_f_logo_%282019%29.svg/512px-Facebook_f_logo_%282019%29.svg.png?20231203063624">
+		</a>
+		
+        <a title="Instagram / Ian Spalter, Joy-Vincent Niemantsverdriet, Eric Goud, Robert Padbury
+
+			Modification by Saumyaanaidu, CC BY-SA 4.0 &lt;https://creativecommons.org/licenses/by-sa/4.0&gt;, via Wikimedia Commons" 
+			href="https://www.instagram.com/raisul.abedin">
+			<img width="45" alt="Instagram icon in pink" 
+			src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/CIS-A2K_Instagram_Icon_%28Pink%29.svg/512px-CIS-A2K_Instagram_Icon_%28Pink%29.svg.png?20200207140703">
+		</a>
+
+
+       <a title="Original by X Corp.Recolored by Michel Bakni. Placed inside a circle by It&#039;s moon., Public domain, via Wikimedia Commons" 
+			href="https://x.com/raisul_abedin">
+			<img width="45" alt="Gray icon for social network X, formerly known as Twitter" 
+			src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/X_icon_-_Gray.svg/512px-X_icon_-_Gray.svg.png?20250531160606">
+		</a>
+
+
+        <a title="Alpa Rajani, Public domain, via Wikimedia Commons" 
+			href="https://wa.me/+8801911060686">
+			<img width="45" alt="2062095 application chat communication logo whatsapp icon" 
+			src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/2062095_application_chat_communication_logo_whatsapp_icon.svg/64px-2062095_application_chat_communication_logo_whatsapp_icon.svg.png?20220531073934">
+		</a>
+      </div>
+      <!-- end footer-social -->
+
+    </footer>
+  </div> <!-- end main-content -->
+
+  <script>
+    /***********************
+     * Particle background
+     * Lightweight canvas particle system.
+     * - pointer-events:none so it never interferes with UI
+     * - adapts particle count by viewport width for mobile perf
+     ***********************/
+    function initParticles() {
+      const canvas = document.getElementById('particles');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let w = canvas.width = window.innerWidth;
+      let h = canvas.height = window.innerHeight;
+
+      // Particle settings: adjust count depending on width to keep things smooth
+      const baseCount = Math.max(25, Math.floor((w * h) / 50000)); // scales with viewport
+      let PARTICLE_COUNT = Math.min(120, baseCount);
+      if (window.innerWidth < 480) PARTICLE_COUNT = Math.min(PARTICLE_COUNT, 28);
+      if (window.innerWidth < 780) PARTICLE_COUNT = Math.min(PARTICLE_COUNT, 40);
+
+      const particles = [];
+
+      function rand(min, max) { return Math.random() * (max - min) + min; }
+
+      function createParticle() {
+        return {
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: rand(-0.35, 0.35),
+          vy: rand(-0.35, 0.35),
+          r: rand(0.8, 2.6),
+          alpha: rand(0.35, 0.95),
+          hueOffset: Math.random() * 360
+        };
+      }
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(createParticle());
+
+      let lastTime = performance.now();
+      function frame(now) {
+        const dt = (now - lastTime) / 16.666; // normalized to ~60fps
+        lastTime = now;
+
+        // clear
+        ctx.clearRect(0, 0, w, h);
+
+        // background subtle gradient overlay matching theme
+        // we don't draw a solid background to keep original site background visible
+        // draw particles
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+
+          // wrap around edges
+          if (p.x < -10) p.x = w + 10;
+          if (p.x > w + 10) p.x = -10;
+          if (p.y < -10) p.y = h + 10;
+          if (p.y > h + 10) p.y = -10;
+
+          // glow
+          const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 6);
+          // hue cycles slowly for a subtle color effect
+          const hueBase = (Date.now() / 50 + p.hueOffset) % 360;
+          grd.addColorStop(0, `hsla(${hueBase}, 70%, 70%, ${p.alpha})`);
+          grd.addColorStop(0.2, `hsla(${hueBase}, 60%, 60%, ${p.alpha * 0.6})`);
+          grd.addColorStop(1, `hsla(${hueBase}, 60%, 40%, 0)`);
+
+          ctx.fillStyle = grd;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // connect nearby particles with faint lines
+        // keep simple N^2 but limit distance so it's cheap
+        const maxDist = Math.min(180, Math.max(80, Math.sqrt(w*h) / 6));
+        for (let i = 0; i < particles.length; i++) {
+          const a = particles[i];
+          for (let j = i + 1; j < particles.length; j++) {
+            const b = particles[j];
+            const dx = a.x - b.x;
+            const dy = a.y - b.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < maxDist) {
+              const alpha = (1 - dist / maxDist) * 0.15;
+              const hue = ((Date.now() / 80 + a.hueOffset + b.hueOffset) / 2) % 360;
+              ctx.strokeStyle = `hsla(${hue}, 60%, 60%, ${alpha})`;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(a.x, a.y);
+              ctx.lineTo(b.x, b.y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        requestAnimationFrame(frame);
+      }
+
+      // resize handling
+      function onResize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+
+        // adjust particle count on large resizes
+        const newBase = Math.max(25, Math.floor((w * h) / 50000));
+        let newCount = Math.min(120, newBase);
+        if (window.innerWidth < 480) newCount = Math.min(newCount, 28);
+        if (window.innerWidth < 780) newCount = Math.min(newCount, 40);
+
+        if (newCount > particles.length) {
+          const diff = newCount - particles.length;
+          for (let i = 0; i < diff; i++) particles.push(createParticle());
+        } else if (newCount < particles.length) {
+          particles.splice(newCount);
+        }
+      }
+
+      window.addEventListener('resize', () => {
+        // throttle resize
+        clearTimeout(window._particlesResizeTimer);
+        window._particlesResizeTimer = setTimeout(onResize, 150);
+      });
+
+      requestAnimationFrame(frame);
+    }
+
+    /***********************
+     * Existing QR/Barcode app script (unchanged in behavior)
+     ***********************/
+    let currentQR = null;
+    let currentText = "";
+    let logoImage = null;
+    let qrCanvas = null;
+    let qrStyle = 'square';
+    let debounceTimer;
+    const PADDING = 15;
+    let isBarcode = false;
+
+    function updateDateTime() {
+      const now = new Date();
+      const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric'
+      };
+      const dateStr = now.toLocaleDateString('en-US', options);
+      const timeStr = now.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      });
+      document.getElementById('datetime-display').textContent = `${dateStr} • ${timeStr}`;
+    }
+    setInterval(updateDateTime, 60000);
+    updateDateTime();
+
+    function debouncedUpdate() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updateQRNow, 300);
+    }
+
+    function updateQRNow() {
+      clearTimeout(debounceTimer);
+      generateText();
+      renderQR();
+    }
+
+    function openTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.querySelector(`.tab[onclick="openTab('${tabName}')"]`).classList.add('active');
+      document.getElementById(tabName).style.display = 'block';
+
+      isBarcode = (tabName === 'barcode');
+
+      const visibility = isBarcode ? 'none' : 'block';
+      document.getElementById('logoSection').style.display = visibility;
+      document.getElementById('sizeSection').style.display = visibility;
+      document.getElementById('colorSection').style.display = visibility;
+      document.getElementById('styleSection').style.display = visibility;
+
+      updateQRNow();
+    }
+
+    function generateText() {
+      const activeTab = document.querySelector('.tab.active').textContent.trim();
+      let text = "";
+
+      if (activeTab === 'Website') {
+        text = document.getElementById('website-url').value.trim();
+        if (!text) text = "https://example.com";
+        if (!/^https?:\/\//i.test(text)) text = 'https://' + text;
+      } else if (activeTab === 'Text') {
+        text = document.getElementById('plain-text').value.trim() || "Hello World";
+      } else if (activeTab === 'WiFi') {
+        const ssid = document.getElementById('wifi-ssid').value.trim() || "MyWiFi";
+        const password = document.getElementById('wifi-password').value;
+        const encryption = document.getElementById('wifi-encryption').value;
+        text = `WIFI:S:${ssid};T:${encryption};P:${password};;`;
+      } else if (activeTab === 'Whatsapp') {
+        const phone = document.getElementById('whatsapp-phone').value.trim() || "";
+        const message = encodeURIComponent(document.getElementById('whatsapp-message').value.trim() || "");
+        text = `https://wa.me/${phone}${message ? `?text=${message}` : ''}`;
+      } else if (activeTab === 'vCard') {
+        const name = document.getElementById('vcard-name').value.trim() || "John Doe";
+        const phone = document.getElementById('vcard-phone').value.trim() || "+880XXXXXXXXXX";
+        const email = document.getElementById('vcard-email').value.trim() || "john@example.com";
+        const company = document.getElementById('vcard-company').value.trim() || "ABC Corp";
+        text = `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\nORG:${company}\nTEL:${phone}\nEMAIL:${email}\nEND:VCARD`;
+      } else if (activeTab === 'Barcode') {
+        text = document.getElementById('barcode-text').value.trim() || "1234567890";
+      }
+      currentText = text;
+    }
+
+    function loadLogo(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        logoImage = new Image();
+        logoImage.onload = function () {
+          document.getElementById('logo-preview').src = e.target.result;
+          document.getElementById('logo-preview').style.display = 'block';
+          updateQRNow();
+        };
+        logoImage.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateSizeValue() {
+      document.getElementById('size-value').textContent = document.getElementById('qr-size').value;
+    }
+
+    function setStyle(btn) {
+      document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      qrStyle = btn.dataset.style;
+      updateQRNow();
+    }
+
+    function updateColorValues() {
+      document.getElementById('dark-value').textContent = document.getElementById('color-dark').value.toUpperCase();
+      document.getElementById('light-value').textContent = document.getElementById('color-light').value.toUpperCase();
+    }
+
+    function renderQR() {
+      const size = parseInt(document.getElementById("qr-size").value);
+      const container = document.getElementById("qrcode");
+
+      if (!qrCanvas) {
+        qrCanvas = document.getElementById("qr-canvas");
+      }
+
+      if (isBarcode) {
+        const bcType = document.getElementById("barcode-type").value;
+        const includeText = document.getElementById("barcode-includetext").value === "true";
+
+        try {
+          bwipjs.toCanvas(qrCanvas, {
+            bcid: bcType,
+            text: currentText,
+            scale: 3,
+            height: 10,
+            includetext: includeText,
+            textxalign: "center",
+            backgroundcolor: document.getElementById("color-light").value.replace("#",""),
+            barcolor: document.getElementById("color-dark").value.replace("#","")
+          }, function (err) {
+            if (err) {
+              container.innerHTML = `<p style="color:red;">Invalid data for ${bcType}</p><canvas id="qr-canvas"></canvas>`;
+              qrCanvas = document.getElementById("qr-canvas");
+            } else {
+              const originalW = qrCanvas.width;
+              const originalH = qrCanvas.height;
+              const ratio = originalW / originalH;
+
+              let targetW = size;
+              let targetH = size / ratio;
+              if (targetH > size * 1.5) targetH = size * 0.5;
+
+              const tempCanvas = document.createElement('canvas');
+              tempCanvas.width = targetW;
+              tempCanvas.height = targetH;
+              const ctx = tempCanvas.getContext('2d');
+              ctx.fillStyle = document.getElementById("color-light").value;
+              ctx.fillRect(0,0,tempCanvas.width,tempCanvas.height);
+              ctx.drawImage(qrCanvas, 0, 0, targetW, targetH);
+
+              qrCanvas.width = tempCanvas.width;
+              qrCanvas.height = tempCanvas.height;
+              qrCanvas.getContext('2d').drawImage(tempCanvas, 0, 0);
+            }
+          });
+        } catch (e) {
+          container.innerHTML = `<p style="color:red;">Error generating barcode</p><canvas id="qr-canvas"></canvas>`;
+          qrCanvas = document.getElementById("qr-canvas");
+        }
+      } else {
+        const tempDiv = document.createElement('div');
+        tempDiv.style.display = 'none';
+        document.body.appendChild(tempDiv);
+
+        currentQR = new QRCode(tempDiv, {
+          text: currentText,
+          width: size,
+          height: size,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+
+        const check = setInterval(() => {
+          const libCanvas = tempDiv.querySelector('canvas');
+          if (libCanvas) {
+            clearInterval(check);
+            const moduleCount = currentQR._oQRCode.moduleCount;
+            const isDark = (r, c) => currentQR._oQRCode.isDark(r, c);
+            tempDiv.remove();
+
+            qrCanvas.width = size;
+            qrCanvas.height = size;
+            drawCustomStyle(qrCanvas, moduleCount, isDark, size);
+          }
+        }, 1);
+      }
+
+      document.getElementById("downloadButtons").style.display = "flex";
+    }
+
+    function drawRoundedRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function drawCustomStyle(canvas, moduleCount, isDark, size) {
+      const ctx = canvas.getContext("2d");
+      const moduleSize = size / moduleCount;
+
+      const bgColor = document.getElementById("color-light").value;
+      const fgColor = document.getElementById("color-dark").value;
+
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = fgColor;
+
+      for (let row = 0; row < moduleCount; row++) {
+        for (let col = 0; col < moduleCount; col++) {
+          if (isDark(row, col)) {
+            const x = col * moduleSize;
+            const y = row * moduleSize;
+            const w = moduleSize;
+
+            if (qrStyle === 'rounded') {
+              const r = w * 0.25;
+              drawRoundedRect(ctx, x, y, w, w, r);
+              ctx.fill();
+            } else if (qrStyle === 'dot') {
+              ctx.beginPath();
+              ctx.arc(x + w/2, y + w/2, w * 0.48, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.fillRect(x, y, w, w);
+            }
+          }
+        }
+      }
+
+      if (logoImage) {
+        const logoRatio = 0.18;
+        const logoSize = size * logoRatio;
+        const logoX = (size - logoSize) / 2;
+        const logoY = (size - logoSize) / 2;
+        const padding = 5;
+        const cornerRadius = logoSize * 0.1;
+
+        drawRoundedRect(ctx, logoX - padding, logoY - padding, logoSize + padding * 2, logoSize + padding * 2, cornerRadius + padding);
+        ctx.fillStyle = bgColor;
+        ctx.fill();
+
+        ctx.save();
+        drawRoundedRect(ctx, logoX, logoY, logoSize, logoSize, cornerRadius);
+        ctx.clip();
+        ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+        ctx.restore();
+      }
+    }
+
+    function downloadQR(format) {
+      const userSize = parseInt(document.getElementById("qr-size").value);
+      const filename = (currentText.split('\n')[0] || (isBarcode ? "barcode" : "qrcode")).replace(/[^a-z0-9]/gi, '_').substring(0, 30);
+
+      let finalCanvas = document.createElement('canvas');
+      let finalW, finalH;
+
+      if (isBarcode) {
+        finalW = qrCanvas.width;
+        finalH = qrCanvas.height;
+        finalCanvas.width = finalW + PADDING * 2;
+        finalCanvas.height = finalH + PADDING * 2;
+      } else {
+        finalW = userSize;
+        finalH = userSize;
+        finalCanvas.width = finalW + PADDING * 2;
+        finalCanvas.height = finalH + PADDING * 2;
+      }
+
+      const ctx = finalCanvas.getContext('2d');
+      ctx.fillStyle = document.getElementById("color-light").value;
+      ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+      ctx.drawImage(qrCanvas, PADDING, PADDING);
+
+      if (format === 'png') {
+        const link = document.createElement('a');
+        link.download = `${filename}.png`;
+        link.href = finalCanvas.toDataURL("image/png");
+        link.click();
+      }
+      else if (format === 'bmp') {
+        const bmpUrl = canvasToBMP(finalCanvas);
+        const link = document.createElement('a');
+        link.download = `${filename}.bmp`;
+        link.href = bmpUrl;
+        link.click();
+      }
+      else if (format === 'pdf') {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgData = finalCanvas.toDataURL('image/png');
+        const ratio = finalW / finalH;
+        let pdfW = pdfWidth * 0.8;
+        let pdfH = pdfW / ratio;
+        if (pdfH > pdfHeight * 0.8) {
+          pdfH = pdfHeight * 0.8;
+          pdfW = pdfH * ratio;
+        }
+        const x = (pdfWidth - pdfW) / 2;
+        const y = (pdfHeight - pdfH) / 2;
+        pdf.addImage(imgData, 'PNG', x, y, pdfW, pdfH);
+        pdf.save(`${filename}.pdf`);
+      }
+    }
+
+    function canvasToBMP(canvas) {
+      const width = canvas.width;
+      const height = canvas.height;
+      const imageData = canvas.getContext('2d').getImageData(0, 0, width, height);
+      const data = imageData.data;
+      const fileSize = 54 + data.length;
+      const buffer = new ArrayBuffer(fileSize);
+      const view = new DataView(buffer);
+
+      view.setUint16(0, 0x4D42, true);
+      view.setUint32(2, fileSize, true);
+      view.setUint32(10, 54, true);
+      view.setUint32(14, 40, true);
+      view.setInt32(18, width, true);
+      view.setInt32(22, -height, true);
+      view.setUint16(26, 1, true);
+      view.setUint16(28, 32, true);
+      view.setUint32(34, data.length, true);
+
+      let pos = 54;
+      for (let i = 0; i < data.length; i += 4) {
+        view.setUint8(pos++, data[i + 2]);
+        view.setUint8(pos++, data[i + 1]);
+        view.setUint8(pos++, data[i]);
+        view.setUint8(pos++, data[i + 3]);
+      }
+
+      return URL.createObjectURL(new Blob([buffer], { type: 'image/bmp' }));
+    }
+
+    function toggleTheme() {
+      const current = document.body.getAttribute('data-theme');
+      const newTheme = current === 'colorize' ? 'dark' : 'colorize';
+      document.body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      document.getElementById('themeCheckbox').checked = (newTheme === 'dark');
+    }
+
+    // Footer animation on scroll
+    const footer = document.getElementById('animatedFooter');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          footer.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.3 });
+
+    // integrate particle initialization inside existing onload
+    window.onload = () => {
+      const savedTheme = localStorage.getItem('theme') || 'colorize';
+      document.body.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeCheckbox').checked = (savedTheme === 'dark');
+      qrCanvas = document.getElementById("qr-canvas");
+      updateColorValues();
+      updateQRNow();
+      updateDateTime();
+      observer.observe(footer);
+
+      // initialize particle background after initial layout is set
+      try {
+        initParticles();
+      } catch (e) {
+        // silently fail on environments that disallow canvas
+        console.warn('Particle init failed', e);
+      }
+    };
+
+    /* Small accessibility improvement: open social links in new tab (done by target="_blank")
+       Nothing else is changed; replace hrefs above with your real profile links. */
+  </script>
+</body>
+</html>
